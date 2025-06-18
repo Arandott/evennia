@@ -1,0 +1,346 @@
+#
+# Evennia batchfile – Minimal integration test  (traits + clothing + turnbattle)
+# ---------------------------------------------------------------------------
+
+#----------------------------------------------------------------
+# 0. 传送到 Limbo (#2) 并创建测试竞技场
+#----------------------------------------------------------------
+#
+@tel #2
+#
+@dig arena;cufe#601;测试竞技场
+#
+@open enter arena;arena;test = cufe#601
+#
+@open back to limbo;limbo;back = #2
+#
+arena
+#
+@desc here =
+  这是一个专门用于测试战斗、服装和特征系统的竞技场。你可以在这里测试各种功能：
+  战斗、穿装备、查看属性等。|n|n|w可用命令：|n|g战斗系统:|n fight, attack <目标>,
+  pass, disengage, rest|n|g服装系统:|n wear <物品>, remove <物品>, cover <物品1> with <物品2>,
+  inventory|n|g特征系统:|n 通过 Python 代码访问 self.traits.<属性名>|n|n|y提示：|n
+  使用 'help combat' 查看战斗帮助；使用 @py self.traits.strength.value 查看力量值
+#
+
+#----------------------------------------------------------------
+# 1. 竞技场子房间（cufe#602 – 606）
+#    使用 @dig … = 出口到新房间,返回出口  一行建双向出口
+#----------------------------------------------------------------
+#
+@dig fighting room;cufe#602;战士训练室 = fighting room;fr,arena;ar
+#
+@dig magic tower;cufe#603;法师高塔 = magic tower;mt,arena;ar
+#
+@dig tennis court;cufe#604;费德勒球场 = tennis court;tc,arena;ar
+#
+@dig gryffindor common;cufe#605;格兰芬多休息室 = gryffindor common;gc,arena;ar
+#
+@dig konoha ground;cufe#606;木叶修炼场 = konoha ground;kg,arena;ar
+#
+
+# 设置各房间的描述 - 使用别名来确保找到正确的房间
+@desc fighting room = 这间布满武器架的训练室属于测试战士。墙壁上挂着各种刀剑，地面铺着厚实的草垫。
+#
+@desc magic tower = 这座高塔弥漫着魔法的气息，书架摆满各类魔法典籍，中央有一口闪耀符文的坩埚。
+#
+@desc tennis court = 这是一片标准草地球场，四周悬挂着拉沃尔杯海报，中央放着一把签名球拍。
+#
+@desc gryffindor common = 壁炉熊熊燃烧，红金挂毯随风摆动——这里是哈利·波特熟悉的格兰芬多休息室。
+#
+@desc konoha ground = 场地中央树桩排列，四周旗幡随风扬起——鸣人的专属修炼场。
+#
+
+#----------------------------------------------------------------
+# 2. 角色（cufe#611 – cufe#615）
+#----------------------------------------------------------------
+@create/drop warrior;cufe#611;测试战士;fighter : typeclasses.characters.Character
+#
+@create/drop mage;cufe#612;测试法师;wizard   : typeclasses.characters.Character
+#
+@create/drop Federer;cufe#613;费德勒         : typeclasses.characters.Character
+#
+@create/drop Harry Potter;cufe#614;哈利波特   : typeclasses.characters.Character
+#
+@create/drop Naruto;cufe#615;鸣人            : typeclasses.characters.Character
+#
+# 给角色设置免战标记
+@set warrior/immune_combat = True
+#
+@set mage/immune_combat = True
+#
+@set Federer/immune_combat = False
+#
+@set Harry Potter/immune_combat = True
+#
+@set Naruto/immune_combat = True
+#
+# 使用别名来确保找到角色
+#
+@desc cufe#611 = 一个勇敢的测试战士，身材健壮，眼神坚定。
+#
+@desc cufe#612 = 一个聪明的测试法师，手持法杖，散发着神秘的气息。
+#
+@desc cufe#613 = 
+罗杰·费德勒（Roger Federer，1981 年生）被誉为史上最杰出的男子网球选手之一，职业生涯共夺得 20 座大满贯单打冠军、103 个 ATP 单打冠军，并累积 310 周世界第一（其中连续 237 周创纪录）
+他于 2022 年正式退役后，仍活跃于网球及公益领域：继续担任拉沃尔杯的联合创办人兼全球大使，并通过"罗杰·费德勒基金会"资助南部非洲与瑞士的儿童教育项目。2025 年，他还受邀为传奇赛事——勒芒 24 小时耐力赛挥动起跑旗，延续跨界影响力
+#
+@desc cufe#614 = 
+哈利·波特（Harry James Potter，1980 年7月31日生）是 J.K. 罗琳同名系列七部小说的主角，被巫师界誉为"那位活下来的男孩"——婴儿时期在佛地魔的杀戮咒下幸存，并因此肩负击败黑魔王的宿命。故事记录了他在霍格沃茨魔法学校的七年成长，与好友荣恩·韦斯莱、赫敏·格兰杰并肩对抗佛地魔势力，最终完成预言中"终结黑暗"的使命。该系列全球销量逾5 亿册并改编为八部电影与舞台剧《被诅咒的孩子》，使哈利成为当代最具影响力的文学与银幕角色之一
+#
+@desc cufe#615 = 
+漩涡鸣人（うずまきナルト，Uzumaki Naruto）是岸本齐史漫画及动画《火影忍者》系列的主角，体内封印着九尾妖狐并因此自幼遭村民排斥，但他凭着乐观与不屈意志，靠影分身术与螺旋丸等绝技一路成长为第四次忍界大战的关键英雄，最终实现梦想，成为木叶隐村第七代火影，并在续作《博人传》中以丈夫、父亲与领袖的新身份继续守护忍界。
+#
+
+
+#----------------------------------------------------------------
+# 3. 服装物品（cufe#621 – cufe#628）
+#----------------------------------------------------------------
+@create/drop shirt;cufe#621;测试衬衫      : evennia.contrib.game_systems.clothing.clothing.ContribClothing
+#
+@create/drop pants;cufe#622;测试裤子      : evennia.contrib.game_systems.clothing.clothing.ContribClothing
+#
+@create/drop hat;cufe#623;测试帽子        : evennia.contrib.game_systems.clothing.clothing.ContribClothing
+#
+@create/drop robe;cufe#624;法师长袍       : evennia.contrib.game_systems.clothing.clothing.ContribClothing
+#
+@create/drop boots;cufe#625;战士靴子      : evennia.contrib.game_systems.clothing.clothing.ContribClothing
+#
+@create/drop spare_hat;cufe#626;备用帽子  : evennia.contrib.game_systems.clothing.clothing.ContribClothing
+#
+@create/drop gloves;cufe#627;皮革手套     : evennia.contrib.game_systems.clothing.clothing.ContribClothing
+#
+@create/drop necklace;cufe#628;银项链     : evennia.contrib.game_systems.clothing.clothing.ContribClothing
+#
+
+#----------------------------------------------------------------
+# 4. 其他道具（cufe#631 – cufe#633）
+#----------------------------------------------------------------
+@create/drop backpack;cufe#631;测试背包
+#
+@create/drop book;cufe#632;测试书籍
+#
+@create/drop sign;cufe#633;测试说明牌;info
+#
+
+#----------------------------------------------------------------
+# 5. 描述
+#----------------------------------------------------------------
+#
+@desc cufe#621 = 一件简单的棉质测试衬衫，舒适透气。
+#
+@desc cufe#622 = 一条舒适的测试裤子，适合日常活动。
+#
+@desc cufe#623 = 一顶时髦的测试帽子，很有型。
+#
+@desc cufe#624 = 一件神秘的法师长袍，上面绣着奇异的符文。
+#
+@desc cufe#625 = 一双坚固的战士靴子，适合战斗。
+#
+@desc cufe#626 = 一顶备用的帽子，用于测试服装限制功能。
+#
+@desc cufe#627 = 一副柔软的皮革手套。
+#
+@desc cufe#628 = 一条闪闪发光的银项链。
+#
+@desc backpack = 一个普通的背包，可以用来测试物品携带功能。
+#
+@desc book     = 一本关于战斗技巧的书籍。
+#
+@desc sign =
+  |w=== 测试环境说明 ===|n|n|g基本测试：|n1.|w look warrior|n2.|w look mage|n3.|w inventory|n|n
+  |g服装测试：|n1.|w wear shirt|n2.|w remove shirt|n3.|w cover shirt with robe|n4.|w uncover shirt|n|n
+  |g战斗测试：|n1.|w fight|n2.|w attack warrior|n3.|w pass|n4.|w disengage|n5.|w rest|n|n
+  |g特征测试：|n1.|w @py self.traits.strength.value|n|y注意：|n帽子等部位有数量限制；需多人同场才能战斗。
+#
+
+#----------------------------------------------------------------
+# 6. 武器系统测试（cufe#641 – cufe#645）
+#----------------------------------------------------------------
+@create/drop zhanlv;cufe#641;湛卢;湛卢剑 : typeclasses.weapon.Weapon
+#
+@create/drop iron_sword;cufe#642;铁剑 : typeclasses.weapon.Weapon
+#
+@create/drop magic_staff;cufe#643;魔杖 : typeclasses.weapon.Weapon
+#
+@create/drop bow;cufe#644;长弓 : typeclasses.weapon.Weapon
+#
+@create/drop axe;cufe#645;战斧 : typeclasses.weapon.Weapon
+#
+@create/drop pro stuff;cufe#646 : typeclasses.weapon.Weapon
+#
+
+#----------------------------------------------------------------
+# 7. 武器属性设置
+#----------------------------------------------------------------
+# 湛卢 - 传说品质神剑
+@set cufe#641/weapon_type = sword
+#
+@set cufe#641/damage_min = 25
+#
+@set cufe#641/damage_max = 40
+#
+@set cufe#641/quality = legendary
+#
+@set cufe#641/critical_rate = 0.15
+#
+@desc cufe#641 = 传说中的神剑湛卢，剑身如秋水般清澈，锋利无比。此剑有灵性，只有德行高尚的人才能驾驭。剑刃上隐隐有龙纹游走，散发着淡淡的神光。
+#
+
+# 铁剑 - 普通品质
+@set cufe#642/weapon_type = sword
+#
+@set cufe#642/damage_min = 12
+#
+@set cufe#642/damage_max = 18
+#
+@set cufe#642/quality = common
+#
+@desc cufe#642 = 一把普通的铁制长剑，虽然平凡但很实用。
+#
+
+# 魔杖 - 稀有品质
+@set cufe#643/weapon_type = staff
+#
+@set cufe#643/damage_min = 8
+#
+@set cufe#643/damage_max = 15
+#
+@set cufe#643/quality = rare
+#
+@desc cufe#643 = 哈利·波特的魔杖长 11 英寸，由冬青木制成，核心是一根来自邓布利多凤凰“福克斯”的凤凰羽毛
+#
+
+# 长弓 - 普通品质
+@set cufe#644/weapon_type = bow
+#
+@set cufe#644/damage_min = 10
+#
+@set cufe#644/damage_max = 16
+#
+@set cufe#644/quality = common
+#
+@desc cufe#644 = 一把制作精良的长弓，适合远程攻击。
+#
+
+# 战斧 - 稀有品质
+@set cufe#645/weapon_type = axe
+#
+@set cufe#645/damage_min = 18
+#
+@set cufe#645/damage_max = 28
+#
+@set cufe#645/quality = rare
+#
+@desc cufe#645 = 一把重型战斧，能够造成巨大的伤害。
+#
+
+# Pro stuff - 传说品质网球拍
+@set cufe#646/weapon_type = sword
+#
+@set cufe#646/damage_min = 25
+#
+@set cufe#646/damage_max = 40
+#
+@set cufe#646/quality = legendary
+#
+@set cufe#646/critical_rate = 0.15
+#
+@desc cufe#646 = Wilson Pro Staff RF97 Autograph 是费德勒亲自参与调校的 97 in² 经典控制型球拍，约 340 g 空拍重量和头轻配平带来扎实稳定且富有穿透力的击球手感。
+#
+
+#----------------------------------------------------------------
+# 8. 基础属性
+#----------------------------------------------------------------
+@py caller.search("cufe#611").traits.strength.base = 12
+#
+@py caller.search("cufe#611").traits.constitution.base = 11
+#
+@py caller.search("cufe#612").traits.strength.base = 8
+#
+@py caller.search("cufe#612").traits.dexterity.base = 12
+#
+@py caller.search("cufe#612").traits.constitution.base = 9
+#
+
+#----------------------------------------------------------------
+# 9. 服装类型设置
+#----------------------------------------------------------------
+@set cufe#621/clothing_type = top
+#
+@set cufe#622/clothing_type = bottom
+#
+@set cufe#623/clothing_type = hat
+#
+@set cufe#624/clothing_type = fullbody
+#
+@set cufe#625/clothing_type = shoes
+#
+@set cufe#626/clothing_type = hat
+#
+@set cufe#627/clothing_type = gloves
+#
+@set cufe#628/clothing_type = jewelry
+#
+
+#----------------------------------------------------------------
+# 10. 把服装发给角色并直接穿上
+#----------------------------------------------------------------
+@teleport/quiet cufe#621 = cufe#611
+#
+@teleport/quiet cufe#622 = cufe#611
+#
+@teleport/quiet cufe#625 = cufe#611
+#
+@teleport/quiet cufe#623 = cufe#612
+#
+@teleport/quiet cufe#624 = cufe#612
+#
+@teleport/quiet cufe#643 = Harry Potter
+#
+@teleport/quiet cufe#646 = Federer
+#
+@force cufe#611 = wear cufe#621
+#
+@force cufe#611 = wear cufe#622
+#
+@force cufe#611 = wear cufe#625
+#
+@force cufe#612 = wear cufe#623
+#
+@force cufe#612 = wear cufe#624
+#
+@force Federer = equip cufe#646
+#
+@force Harry Potter = equip cufe#643
+#
+
+# 把角色移入各自房间
+@teleport/quiet cufe#611 = cufe#602
+#
+@teleport/quiet cufe#612 = cufe#603
+#
+@teleport/quiet Federer = cufe#604
+#
+@teleport/quiet Harry Potter = cufe#605
+#
+@teleport/quiet Naruto = cufe#606
+#
+
+#----------------------------------------------------------------
+# 11. 信息牌上锁
+#----------------------------------------------------------------
+@lock cufe#633 = get:false()
+#
+@set cufe#633/get_err_msg = 信息牌是固定的，不能拿走。
+#
+
+#----------------------------------------------------------------
+# 12. 收尾
+#----------------------------------------------------------------
+@tel #2
+#
+# === 测试环境创建完成！（所有对象别名形如 cufe#6xx）===
+#   输入 arena 进入测试房间开始体验
+#

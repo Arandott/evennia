@@ -138,29 +138,80 @@ By comparison, Chat-GPT 3.5 is a 175B model. We don't know how large Chat-GPT 4 
 
 ## Using an AI cloud service
 
-You could also call out to an external API, like OpenAI (chat-GPT) or Google. Most cloud-hosted services are commercial and costs money. But since they have the hardware to run bigger models (or their own, proprietary models), they may give better and faster results.
+You can now easily use cloud-hosted LLM services like OpenAI, DeepSeek, and other OpenAI-compatible APIs. Most cloud services are commercial and cost money, but they provide access to much larger and more capable models than you can typically run locally.
 
-```{warning}
-Calling an external API is currently untested, so report any findings. Since the Evennia Server (not the Portal) is doing the calling, you are recommended to put a proxy between you and the internet if you call out like this.
+### Supported Cloud Services
 
-```
-Here is an untested example of the Evennia setting for calling [OpenAI's v1/completions API](https://platform.openai.com/docs/api-reference/completions):
+The LLM client now supports:
+- **OpenAI API** (ChatGPT, GPT-4, etc.)
+- **DeepSeek API** 
+- **Any OpenAI-compatible API** (many Chinese LLM providers use this format)
+
+### OpenAI API Configuration
+
+To use OpenAI's API, add this to your `mygame/server/conf/settings.py`:
 
 ```python
+# OpenAI API 配置
+LLM_API_TYPE = "openai"
+LLM_API_KEY = "sk-your-actual-openai-api-key-here"  # 替换为你的实际 API 密钥
+LLM_MODEL = "gpt-3.5-turbo"  # 或者 "gpt-4", "gpt-4-turbo" 等
 LLM_HOST = "https://api.openai.com"
-LLM_PATH = "/v1/completions"
-LLM_HEADERS = {"Content-Type": ["application/json"],
-               "Authorization": ["Bearer YOUR_OPENAI_API_KEY"]}
-LLM_PROMPT_KEYNAME = "prompt"
+LLM_PATH = "/v1/chat/completions"
+LLM_HEADERS = {"Content-Type": ["application/json"]}
 LLM_REQUEST_BODY = {
-                        "model": "gpt-3.5-turbo",
-                        "temperature": 0.7,
-                        "max_tokens": 128,
-                   }
-
+    "model": "gpt-3.5-turbo",
+    "temperature": 0.7,
+    "max_tokens": 250,
+    "top_p": 1,
+    "frequency_penalty": 0,
+    "presence_penalty": 0,
+}
 ```
 
-> TODO: OpenAI's more modern [v1/chat/completions](https://platform.openai.com/docs/api-reference/chat) api does currently not work out of the gate since it's a bit more complex.
+### DeepSeek API Configuration
+
+DeepSeek is often more cost-effective than OpenAI. To use DeepSeek's API:
+
+```python
+# DeepSeek API 配置
+LLM_API_TYPE = "openai"  # DeepSeek 使用 OpenAI 兼容格式
+LLM_API_KEY = "sk-your-deepseek-api-key-here"  # 替换为你的 DeepSeek API 密钥
+LLM_MODEL = "deepseek-chat"
+LLM_HOST = "https://api.deepseek.com"
+LLM_PATH = "/v1/chat/completions"
+LLM_HEADERS = {"Content-Type": ["application/json"]}
+LLM_REQUEST_BODY = {
+    "model": "deepseek-chat",
+    "temperature": 0.7,
+    "max_tokens": 250,
+    "top_p": 0.95,
+}
+```
+
+### Getting API Keys
+
+1. **OpenAI**: Visit [platform.openai.com](https://platform.openai.com) to create an account and get your API key
+2. **DeepSeek**: Visit [platform.deepseek.com](https://platform.deepseek.com) to register and get your API key
+
+```{warning}
+Remember to keep your API keys secure! Never commit them to version control. Consider using environment variables or a separate config file for sensitive information.
+```
+
+### Other OpenAI-Compatible Services
+
+Many other LLM providers use OpenAI-compatible APIs. You can usually adapt the configuration by changing the `LLM_HOST` and `LLM_MODEL` settings. Examples include:
+
+- 阿里云通义千问 (Qwen)
+- 智谱 AI (ChatGLM)  
+- 月之暗面 (Moonshot)
+- And many others
+
+See `llm_settings_examples.py` for more configuration examples.
+
+### Legacy v1/completions API
+
+The old v1/completions API example in this README is now deprecated. The current implementation uses the more modern v1/chat/completions API which provides better results and is the standard for most LLM providers.
 
 ## The LLMNPC class
 

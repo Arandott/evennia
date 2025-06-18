@@ -211,3 +211,4 @@ class CmdLLMTalk(Command):
             target.at_talked_to(self.speech, self.caller)
         else:
             self.caller.msg(f"{target.key} doesn't seem to want to talk to you.")
+

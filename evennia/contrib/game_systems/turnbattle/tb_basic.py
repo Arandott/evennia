@@ -43,7 +43,7 @@ in your game and using it as-is.
 """
 
 from random import randint
-
+from twisted.internet.defer import inlineCallbacks
 from evennia import Command, DefaultCharacter, DefaultScript, default_cmds
 from evennia.commands.default.help import CmdHelp
 
@@ -53,7 +53,7 @@ OPTIONS
 ----------------------------------------------------------------------------
 """
 
-TURN_TIMEOUT = 30  # Time before turns automatically end, in seconds
+TURN_TIMEOUT = 60  # Time before turns automatically end, in seconds
 ACTIONS_PER_TURN = 1  # Number of actions allowed per turn
 
 """
@@ -192,7 +192,8 @@ class BasicCombatRules:
             into a dying state or something similar) then this is the place to
             do it.
         """
-        defeated.location.msg_contents("%s has been defeated!" % defeated)
+        pass
+        # defeated.location.msg_contents("%s has been defeated!" % defeated)
 
     def resolve_attack(self, attacker, defender, attack_value=None, defense_value=None):
         """
@@ -219,9 +220,9 @@ class BasicCombatRules:
         else:
             damage_value = self.get_damage(attacker, defender)  # Calculate damage value.
             # Announce damage dealt and apply damage.
-            attacker.location.msg_contents(
-                "%s hits %s for %i damage!" % (attacker, defender, damage_value)
-            )
+            # attacker.location.msg_contents(
+            #     "%s hits %s for %i damage!" % (attacker, defender, damage_value)
+            # )
             self.apply_damage(defender, damage_value)
             # If defender HP is reduced to 0 or less, call at_defeat.
             if defender.db.hp <= 0:
@@ -237,6 +238,9 @@ class BasicCombatRules:
         Notes:
             Any attribute whose key begins with 'combat_' is temporary and no
             longer needed once a fight ends.
+        
+        Warnings:
+            Be careful when you set your own attributes which start with 'combat_'!
         """
         for attr in character.attributes.all():
             if attr.key[:7] == "combat_":  # If the attribute name starts with 'combat_'...
@@ -264,11 +268,42 @@ class BasicCombatRules:
         Returns:
             (bool): True if it is their turn or False otherwise
         """
-        turnhandler = character.db.combat_turnhandler
-        currentchar = turnhandler.db.fighters[turnhandler.db.turn]
+        try:
+            turnhandler = character.db.combat_turnhandler
+            currentchar = turnhandler.db.fighters[turnhandler.db.turn]
+        except:
+            return False
         return bool(character == currentchar)
+    
+    def start_action(self, character, actions, action_name=None):
+        """
+        开始一个战斗行动。
 
-    def spend_action(self, character, actions, action_name=None):
+        参数:
+            character (obj): 执行行动的角色
+            actions (int): 需要消耗的行动点数
+            action_name (str, 可选): 行动的名称
+
+        返回:
+            bool: 如果可以执行行动返回True,否则返回False
+        """
+        if actions == "all":  # If spending all actions
+            character.db.combat_actionsleft = 0  # Set actions to 0
+        else:
+            character.db.combat_actionsleft -= actions
+        
+        if action_name:
+            character.db.combat_lastaction = action_name
+        
+        # 检查是否有足够的行动点
+        if character.db.combat_actionsleft < 0:
+            character.db.combat_actionsleft = 0
+            character.msg("你没有足够的行动点。")
+            return False
+
+        return True
+
+    def end_action(self, character, actions, action_name=None):
         """
         Spends a character's available combat actions and checks for end of turn.
 
@@ -280,14 +315,6 @@ class BasicCombatRules:
             action_name (str or None): If a string is given, sets character's last action in
             combat to provided string
         """
-        if action_name:
-            character.db.combat_lastaction = action_name
-        if actions == "all":  # If spending all actions
-            character.db.combat_actionsleft = 0  # Set actions to 0
-        else:
-            character.db.combat_actionsleft -= actions  # Use up actions.
-            if character.db.combat_actionsleft < 0:
-                character.db.combat_actionsleft = 0  # Can't have fewer than 0 actions
         character.db.combat_turnhandler.turn_end_check(character)  # Signal potential end of turn.
 
 
@@ -429,7 +456,8 @@ class TBBasicTurnHandler(DefaultScript):
         if self.db.timer <= 0:
             # Force current character to disengage if timer runs out.
             self.obj.msg_contents("%s's turn timed out!" % currentchar)
-            self.rules.spend_action(
+            self.rules.start_action(currentchar, "all", action_name="disengage")
+            self.rules.end_action(
                 currentchar, "all", action_name="disengage"
             )  # Spend all remaining actions.
             return
@@ -472,7 +500,7 @@ class TBBasicTurnHandler(DefaultScript):
         """
         character.db.combat_actionsleft = ACTIONS_PER_TURN  # Replenish actions
         # Prompt the character for their turn and give some information.
-        character.msg("|wIt's your turn! You have %i HP remaining.|n" % character.db.hp)
+        character.msg("|w 你的回合到了！ 你目前的生命值是： %i HP |n" % character.db.hp)
 
     def next_turn(self):
         """
@@ -514,6 +542,12 @@ class TBBasicTurnHandler(DefaultScript):
         if self.db.turn > len(self.db.fighters) - 1:
             self.db.turn = 0  # Go back to the first in the turn order once you reach the end.
         newchar = self.db.fighters[self.db.turn]  # Note the new character
+        
+        if newchar.db.hp > 0:
+            pass
+        else:
+            self.next_turn()
+        
         self.db.timer = TURN_TIMEOUT + self.time_until_next_repeat()  # Reset the timer.
         self.db.timeout_warning_given = False  # Reset the timeout warning.
         self.obj.msg_contents("%s's turn ends - %s's turn begins!" % (currentchar, newchar))
@@ -595,7 +629,7 @@ class CmdFight(Command):
             return
         here.msg_contents("%s starts a fight!" % self.caller)
         # Add a turn handler script to the room, which starts combat.
-        here.scripts.add(self.command_handler_class)
+        here.scripts.add(self.combat_handler_class)
 
 
 class CmdAttack(Command):
@@ -614,6 +648,7 @@ class CmdAttack(Command):
 
     rules = COMBAT_RULES
 
+    @inlineCallbacks
     def func(self):
         "This performs the actual command."
         "Set the attacker to the caller and the defender to the target."
@@ -628,6 +663,10 @@ class CmdAttack(Command):
 
         if not self.caller.db.hp:  # Can't attack if you have no HP.
             self.caller.msg("You can't attack, you've been defeated.")
+            return
+        
+        if self.caller.db.combat_actionsleft <= 0:
+            self.caller.msg("你已经没有可用行动。")
             return
 
         attacker = self.caller
@@ -645,8 +684,10 @@ class CmdAttack(Command):
             return
 
         "If everything checks out, call the attack resolving function."
-        self.rules.resolve_attack(attacker, defender)
-        self.rules.spend_action(self.caller, 1, action_name="attack")  # Use up one action.
+        if not self.rules.start_action(self.caller, 1, action_name="attack"): # Use up one action.
+            return
+        yield self.rules.resolve_attack(attacker, defender)
+        self.rules.end_action(self.caller, 1, action_name="attack")  
 
 
 class CmdPass(Command):
@@ -677,12 +718,18 @@ class CmdPass(Command):
         if not self.rules.is_turn(self.caller):  # Can only pass if it's your turn.
             self.caller.msg("You can only do that on your turn.")
             return
+        
+        if self.caller.db.combat_actionsleft <= 0:
+            self.caller.msg("你已经没有可用行动。")
+            return
 
+        if not self.rules.start_action(self.caller, 1, action_name="pass"): # Use up one action.
+            return
         self.caller.location.msg_contents(
-            "%s takes no further action, passing the turn." % self.caller
+            "%s 在本回合选择不做任何行动" % self.caller
         )
         # Spend all remaining actions.
-        self.rules.spend_action(self.caller, "all", action_name="pass")
+        self.rules.end_action(self.caller, "all", action_name="pass")
 
 
 class CmdDisengage(Command):
@@ -714,10 +761,16 @@ class CmdDisengage(Command):
         if not self.rules.is_turn(self.caller):  # If it's not your turn
             self.caller.msg("You can only do that on your turn.")
             return
+        
+        if self.caller.db.combat_actionsleft <= 0:
+            self.caller.msg("你已经没有可用行动。")
+            return
 
         self.caller.location.msg_contents("%s disengages, ready to stop fighting." % self.caller)
         # Spend all remaining actions.
-        self.rules.spend_action(self.caller, "all", action_name="disengage")
+        if not self.rules.start_action(self.caller, "all", action_name="disengage"): # Use up one action.
+            return
+        self.rules.end_action(self.caller, "all", action_name="disengage")
         """
         The action_name kwarg sets the character's last action to "disengage", which is checked by
         the turn handler script to see if all fighters have disengaged.

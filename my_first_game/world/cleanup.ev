@@ -1,0 +1,25 @@
+#
+# Evennia 清理脚本 - 删除测试环境
+# 用于清理 minimal_test.ev 创建的所有内容
+#
+# 使用方法：
+# 在游戏中执行: batchcommand world.cleanup
+#
+
+# 确保我们在 Limbo 开始
+@tel #2
+
+#------------------------------------------------------------
+# 删除测试角色和物品
+#------------------------------------------------------------
+
+@py for name in ['测试战士', 'warrior', '测试法师', 'mage', '测试衬衫', 'shirt', '测试裤子', 'pants', '测试帽子', 'hat', '法师长袍', 'robe', '战士靴子', 'boots', '备用帽子', 'spare_hat', '皮革手套', 'gloves', '银项链', 'necklace', '测试背包', 'backpack', '测试书籍', 'book', '测试说明牌', 'sign']: (lambda obj_list: obj_list[0].delete() if obj_list else None)(search(name))
+
+#------------------------------------------------------------
+# 删除房间和出入口
+#------------------------------------------------------------
+
+@py for name in ['enter arena', 'back to limbo', '测试竞技场', 'arena']: (lambda obj_list: obj_list[0].delete() if obj_list else None)(search(name))
+
+# 确保回到 Limbo
+@tel #2 
